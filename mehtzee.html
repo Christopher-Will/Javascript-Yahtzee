@@ -1,0 +1,610 @@
+
+<!DOCTYPE>
+<!--
+	Name:    Paul Linton
+	File:    mehtzee-starting-1.html
+	Version: 1
+	Date:    2017-Feb-14
+
+
+   This is some starting code for a javascript program.
+
+-->
+<!-- Name: Christopher Will -->
+
+
+<HTML>
+<TITLE>Meh-tzee</TITLE>
+<HEAD>
+<STYLE>
+table#Dice {
+	width: 60%;
+    border: 3px solid black;
+}
+table#Dice th, td {
+    border: 3px solid black;
+}
+table#ScoreCard {
+	width: 60%;
+    border: 1px solid black;
+	}
+table#ScoreCard th {
+	text-align: center;
+    border: 1px solid black;
+}
+<!--
+table#ScoreCard tr td {
+    border: 1px solid black;
+}
+-->
+table#ScoreCard tr td {
+	width: 43%;
+	text-align: center;
+    border: 1px solid black;
+}
+table#ScoreCard tr td:nth-child(1) {
+	width: 14%;
+    border: 3px solid black;
+}
+
+table#Dice td {
+	image-align: center;
+}
+
+table#WinLoss td {
+	text-align: center;
+}
+
+#Roll, #NewGame {
+	width: 60%;
+	text-align: center;
+	font-size: 1.5em;
+}
+
+h1 {
+	font-size: 2em;
+	width: 60%;
+	text-align: center;
+}
+</STYLE>
+
+<SCRIPT>
+var defaultPath = "http://www.cs.uky.edu/~paul/CS316/P2/";
+var totalGames = 0;
+var cWins = 0;								// computer win total
+var pWins = 0;								// player win total
+var diceValues = [0, 0, 0, 0, 0, 0];		// values of dice
+var heldValues = [false, false, false, false, false, false]; // is a die held?
+											// the different scoring slots
+//                  1s 2s 3s 4s 5s 6s bonus mehtzee total
+var compScore  =   [0, 0, 0, 0, 0, 0,   0,     0,     0];
+var playerScore  = [0, 0, 0, 0, 0, 0,   0,     0,     0];
+					
+var currentTurn = 0;						// current turn, duh!
+var maxTurns = 7;
+var currentRoll = 0;
+var MAXROLLS = 4;
+var isPlayerTurn = true; //the player goes 1st
+
+function load() {
+	newgame = document.getElementById("NewGame");
+	newgame.addEventListener("click", ModNewGame);
+}	// Make NewGame clickable.....
+
+function ModNewGame(theEvent) {
+	newgame = document.getElementById("NewGame");
+	newgame.onclick = StartGame(newgame);
+}
+
+function StartGame(newgame) {
+	document.getElementById("NewGame").removeEventListener("click", ModNewGame);
+	newgame.innerHTML = "Game Started!";
+	resetScores();
+	updateWins();
+	resetDice();
+	resetButtons();
+	currentTurn = 0;
+
+	//set the border around the Players rows to blue
+	var playerRow;
+	for(playerRow = 0; playerRow < 6; playerRow+=1){
+		document.getElementById("P" + playerRow).style.border = "3px solid blue";
+		//set the score rows to blue for the player
+	}
+	document.getElementById("P7").style.border = "3px solid blue";
+}
+
+function resetScores() {
+	//set the score back to 0
+	var slot = "";
+	var maxSlots = playerScore.length;
+	for(i = 0 ; i < (playerScore.length) ; i++) {
+		playerScore[i] = 0;
+		compScore[i] = 0;
+		document.getElementById("P" + i).innerHTML = "";
+		document.getElementById("C" + i).innerHTML = "";
+	}
+}
+
+function resetDice() {
+//set the die back to 0 and unhold them
+	for (i = 0 ; i < diceValues.length; i++) {
+		diceValues[i] = 0;
+		heldValues[i] = false;
+	}
+}
+
+function resetRoll() {
+//make the Roll button blue and clickable
+	newturn = document.getElementById("Roll");
+	newturn.style.color = "blue";
+	newturn.onclick = Roll;
+	newturn.innerHTML = "Roll";
+	currentRoll = 0;
+}
+
+function resetButtons() {
+        resetRoll();
+       	resetDice();
+        newMessage("Your Turn!");
+}
+
+function endGame() {
+	totalGames += 1;
+
+	var rollElement = document.getElementById("Roll");
+	rollElement.onclick = noClick;
+	rollElement.style.color = "black";
+	//make the roll button unclickable and change its color to black
+
+
+	var newgame = document.getElementById("NewGame");
+	newgame.innerHTML = "New Game ?";
+	
+	//decide if the user won or lost and give an appropriate message and increment
+	//the counter correctly
+	if (playerScore[playerScore.length-1] >= compScore[playerScore.length-1]) {
+		newMessage("You won...click New Game to play again!")
+		pWins += 1;
+	} else {
+		newMessage("You lost...click New Game to play again!")
+		cWins += 1;
+	}
+	updateWins();
+	//allow the user to click on New Game to play again
+	newgame.addEventListener("click", ModNewGame);
+}
+
+function computeScore(slot) {
+	var score = 0;
+	var dieValue = parseInt(slot)+1; //the value of the die the player is rolling for
+	var i;
+	if(dieValue < 7){ // player is NOT trying for a mehtzee
+		for(i = 0; i < diceValues.length; i+=1){
+			if(diceValues[i] == dieValue){
+				score+=dieValue;//current die is equal to dieValue so increase their score
+			}
+		}
+	}else{ // player is going for a mehtzee
+		for(i = 0; i < diceValues.length - 1; i+=1){
+			if(diceValues[i] != diceValues[i+1]){
+				score= 0;
+				break;//die values weren't equal to break and set their score to 0
+			}else{
+				score = 50 // all die values equal so player got a valid mehtzee
+			}
+		}
+	}
+	if(score == 50){
+		alert("Well done! You got a Meh-tzee!"); //player got a mehtzee so congratuate them
+	}
+	return score;
+}
+
+function toggleHold() {
+	var toggle = doToggle(this.id, this.src);
+	this.src = toggle;
+}
+
+//
+// pre-condition:	path is in the form of:
+//					http://www.cs.uky.edu/~paul/CS316/P2/X.png
+//			-or-
+//					http://www.cs.uky.edu/~paul/CS316/P2/Xgreen.png
+// 
+// where X is a number from 1-6.
+//
+// post-condition:	If ...X.png then return ...Xgreen.png, 
+//					otherwise return ...X.png.
+//
+function doToggle(id,path) {
+	var newPath = path;
+	var pathArray = path.split("/");
+	var pathSize = pathArray.length;
+	var currFile = pathArray[pathSize-1];
+
+	// currFile will be in two forms:  "X.png" or "Xgreen.png"
+	var fileName = currFile.split(".");
+	// fileName will be an array (size 2) either "X" or "Xgreen" and "png".
+
+	var res = fileName[0].match(/green/);
+
+	if (res == null) {     			// currently not on HOLD
+		heldValues[id[1]] = true;		
+		newPath = defaultPath+fileName[0]+"green."+fileName[1];
+		var isHoldingAllDice = checkHoldingAllDice();
+	} else {
+		heldValues[id[1]] = false;		
+		newPath = defaultPath + fileName[0][0] +"."+fileName[1];
+	}
+	return newPath;
+}
+
+function newMessage(aMessage) {
+	document.getElementById("gameMessage").innerHTML = aMessage;
+}
+
+function noClick() {
+//do nothing--used for removing clickability from elements
+}
+
+function checkHoldingAllDice(){
+	var i;
+	//see if they are holding all the dice
+	for(i = 0; i < heldValues.length; i+=1){
+		if(heldValues[i] == false){
+			return false;
+		}
+	}
+	return true; //holding all the dice so return true
+}
+
+function computerTurn(){
+	isPlayerTurn = false;
+	currentRoll = 0;
+	while(currentRoll < MAXROLLS){
+		Roll(); //allow the comp to roll 4 times
+	}
+	var computerScore;
+	var totalScoreIndex = compScore.length - 1; //index of their total score in compScore[]	
+	computerScore = computeScore(currentTurn);
+	if(currentTurn < 6){//update the HTML if computer rolling for a 1,2,3,4,5,6
+		document.getElementById("C" + currentTurn).innerHTML = computerScore;
+	}else{//computers last turn and is then rolling for a mehtzee
+		document.getElementById("C7").innerHTML = computerScore;
+	}
+	compScore[totalScoreIndex]+=computerScore; //update the computers total score
+	
+	var bonusScoreIndex = 6;//the index of the bonus score in compScore[]
+	if(compScore[bonusScoreIndex] == 0){
+		computeBonus();	//computer hasn't gotten the bonus yet so check if they can
+	}
+	document.getElementById("C8").innerHTML = compScore[totalScoreIndex]; //update the totalScore inner HTML
+	
+	//prevent user from holding dice/clicking score rows @ the end of the computers turn
+	var i;
+	for(i = 0; i < diceValues.length; i+=1){
+		document.getElementById("d" + i).onclick = noClick;
+		document.getElementById("P" + i).removeEventListener("click", selectScore);
+	}
+	document.getElementById("P7").removeEventListener("click", selectScore);
+
+	currentTurn+=1;
+	resetButtons();
+	isPlayerTurn = true;
+	if(currentTurn == 7){
+		endGame();
+		return;//game is over so call endGame
+	}
+}
+
+function holdMostCommonValue(){
+/*used for calculating Mehtzee for the computer.
+This will find the most common dice the computer rolled
+and hold it*/
+	
+	//array to hold the number of times each dice was rolled by the computer
+	var dice = [0,0,0,0,0,0];
+	var i;
+	var j;
+	var count;//holds the number of times a dice appeared
+	for(i = 0; i < 6; i+=1){
+		count = 0;
+		for(j = 0; j < diceValues.length; j+=1){
+			if(i + 1 == diceValues[j]){ //current dice is equal to i+1, so increment the counter
+				count+=1;	
+			}
+		}
+		dice[i] = count;// set the ith index equal to the number of times the computer rolled the i+1 dice
+	}
+
+	//find the max value in dice[]. This will be the most common dice rolled by the computer
+	var maxCount = 0;
+	for(i = 0; i < dice.length; i+=1){
+		if(dice[i] > maxCount){
+			maxCount = dice[i]
+		}
+	}
+	
+	/*find which dice corresponded to the maxCount. If there's a tie then
+	it goes to the lowest value dice*/
+	var mostCommonDice;
+	for(i = 0; i < diceValues.length; i+=1){
+		if(dice[i] == maxCount){
+			mostCommonDice = i + 1;
+			break;
+		}
+	}
+
+	//hold the dice corresponding to the mostCommonDice
+	for(i = 0; i < heldValues.length; i+=1){
+		if(diceValues[i] == mostCommonDice){
+			heldValues[i] = true;
+			var toggle = doToggle("d" + i, defaultPath + diceValues[i] + ".png");
+                        document.getElementById("d" + i).src = toggle;
+		}else{//the current dice wasn't the most common so don't hold it
+			heldValues[i] = false;
+		}
+	}
+}
+
+function holdComputerDice(){
+/*Hold the dice for the computers turn*/
+
+	var i;
+	if(currentTurn < 6){
+		for(i = 0; i < diceValues.length; i+=1){
+		//current dice is equal to the kind needed by the computer so hold it
+			if(diceValues[i] == currentTurn + 1){
+				heldValues[i] = true;
+				var toggle = doToggle("d" + i, defaultPath + diceValues[i] + ".png");
+				document.getElementById("d" + i).src = toggle;
+			}
+		}
+	}else{
+		holdMostCommonValue(); //computer is going for a Mehtzee
+	}
+}
+
+function Roll() {	
+	var rollB = document.getElementById("Roll");
+        var isHoldingAllDice = checkHoldingAllDice();
+	//check if they're holding all the dice
+	if(isHoldingAllDice){
+		//inform the user that holding all the dice is not good
+		alert("Holding all the dice isn't a good strategy!");
+	}
+	
+	if(!isHoldingAllDice || !isPlayerTurn){	
+        	currentRoll += 1;
+	}//increment the currentRoll if they're NOT holding all the dice OR the computer is playing
+        
+	rollDice();
+        rollB.innerHTML = "Roll("+currentRoll+")";
+        rollB.nodeValue = currentRoll;
+
+	//make the score rows and dice clickable
+        var i;
+	for(i = 0; i < 6; i+=1){
+		document.getElementById("P" + i).addEventListener("click",selectScore);
+		document.getElementById("d" + i).onclick = toggleHold;
+	}
+	document.getElementById("P7").addEventListener("click", selectScore);
+	
+	if(!isPlayerTurn){
+		holdComputerDice();//computers turn, so hold their dice
+	}
+
+	//they've rolled 4 times so update the color of Roll and prevent them from clicking on it
+        if (currentRoll == MAXROLLS) {
+                rollB.style.color = "grey";
+                rollB.onclick = noClick;
+                newMessage("Out of Rolls, choose a scoring option.");
+                return;
+        }
+        newMessage((MAXROLLS-currentRoll)+" roll(s) remaining.");
+}
+
+function selectScore(){
+/*Validate whether the user clicked on a valid score row, and if they did
+then find their score*/
+	
+	var firstDiceImage = document.getElementById("d0").src;
+        if((document.getElementById(this.id).style.borderColor == "green")){
+		return;//user clicked on a score row which has already been selected so do nothing
+        }else{
+                formatUserScore(this.id);//user clicked on empty score row
+        }
+}
+
+function formatUserScore(idRowSelected){
+	//set the border of that row to green
+	document.getElementById(idRowSelected).style.border = "3px solid green";
+	//get the value of the row selected
+	var rowSelected = idRowSelected.substring(1,2);
+	var score = computeScore(rowSelected);//calculate the user's score and update the inner HTML
+	document.getElementById(idRowSelected).innerHTML = score;
+	playerScore[rowSelected] = score;
+	
+	//update the total score in playerScore[]
+	var totalScoreIndex = playerScore.length - 1;
+	playerScore[totalScoreIndex]+=score;
+
+	//check if the user has already gotten the bonus
+	var bonusScoreIndex = 6;
+	if(playerScore[bonusScoreIndex] == 0  ){
+		computeBonus();//user hasn't gotten the bonus 
+	}
+	document.getElementById("P8").innerHTML = playerScore[totalScoreIndex];
+
+	//reset the buttons and allow the computer to have a turn
+	resetButtons();
+	computerTurn();
+}
+
+function computeBonus(){
+	var bonusScoreIndex = 6; //location of the bonus score in compScore[] & playerScore[]
+	var totalScoreIndex = playerScore.length - 1; //index of total score is same for comp & player
+	if(!isPlayerTurn){//computer is playing
+		if(compScore[totalScoreIndex] > 83){
+			compScore[bonusScoreIndex] = 35;
+			compScore[totalScoreIndex]+=35;
+			document.getElementById("C6").innerHTML = 35; //computer earned the bonus 
+		}else{
+			//computer's score is too low so set their bonus score row to 0
+			document.getElementById("C6").innerHTML = 0;
+		}
+	}else{//user is playing
+		if(playerScore[totalScoreIndex] > 83){
+			playerScore[bonusScoreIndex] = 35;
+			playerScore[totalScoreIndex]+=35;
+			document.getElementById("P6").innerHTML = 35; //user earned the bonus
+		}else{
+			//user score too low so set their bonus score row to 0
+			document.getElementById("P6").innerHTML = 0;
+		}
+	}
+}
+
+function rollDice() {
+	var p; // check whether the user is holding the current die, if not roll it
+	for (p = 0 ; p < diceValues.length; p+=1) {
+		if(heldValues[p] == false){
+			var randomDiceValue = Math.floor((Math.random() * 6) + 1); //Used https://www.w3schools.com/jsref/jsref_random.asp
+			var currentDice = document.getElementById("d" + p);
+			currentDice.src = "http://www.cs.uky.edu/~paul/CS316/P2/" + randomDiceValue + ".png"; 
+			diceValues[p] = randomDiceValue;
+		}//currentDice is not held so roll it 
+	}
+}
+
+function updateWins() {
+	var cPercent = 0;
+	var pPercent = 0;
+
+	if (totalGames > 0) { //get the win percent for the user and computer
+		cPercent = cWins/totalGames*100;
+		pPercent = pWins/totalGames*100;
+	}
+
+	document.getElementById("cWins").innerHTML = cWins;
+	document.getElementById("cPercent").innerHTML = cPercent + "%";
+	document.getElementById("pWins").innerHTML = pWins;
+	document.getElementById("pPercent").innerHTML = pPercent + "%";
+	document.getElementById("totalGames").innerHTML = totalGames;
+	//update the wins and % wins for the computer and user, and update the
+	//total games played field
+}
+
+</SCRIPT>
+</HEAD>
+<BODY ONLOAD="load()">
+<h1>Welcome to Meh-tzee</h1>
+
+<P ID="NewGame">New Game ?</P>
+
+<TABLE ID="Dice">
+<TR>
+	<TD><img id="d0" SRC="http://www.cs.uky.edu/~paul/CS316/P2/0.png"></TD>
+	<TD><img id="d1" SRC="http://www.cs.uky.edu/~paul/CS316/P2/0.png"></TD>
+	<TD><img id="d2" SRC="http://www.cs.uky.edu/~paul/CS316/P2/0.png"></TD>
+	<TD><img id="d3" SRC="http://www.cs.uky.edu/~paul/CS316/P2/0.png"></TD>
+	<TD><img id="d4" SRC="http://www.cs.uky.edu/~paul/CS316/P2/0.png"></TD>
+	<TD><img id="d5" SRC="http://www.cs.uky.edu/~paul/CS316/P2/0.png"></TD>
+</TR>
+</TABLE>
+
+<P ID="Roll">Roll</P>
+
+<TABLE ID="ScoreCard">
+<TR>     
+	<TH></TH><TH>Computer</TH>		<!-- Computer -->
+	<TH ID="thePlayer">Player</TH>     <!-- Player -->
+</TR>
+<TR>     
+	<TD>Ones</TD>
+	<TD ID="C0"></TD>		<!-- Computer -->
+	<TD ID="P0"></TD>			<!-- Player -->
+</TR>
+<TR>     
+	<TD>Twos</TD>
+	<TD ID="C1"></TD>		<!-- Computer -->
+	<TD ID="P1"></TD>			<!-- Player -->
+</TR>
+<TR>     
+	<TD>Threes</TD>
+	<TD ID="C2"></TD>		<!-- Computer -->
+	<TD ID="P2"></TD>			<!-- Player -->
+</TR>
+<TR>     
+	<TD>Fours</TD>
+	<TD ID="C3"></TD>		<!-- Computer -->
+	<TD ID="P3"></TD>			<!-- Player -->
+</TR>
+<TR>     
+	<TD>Fives</TD>
+	<TD ID="C4"></TD>		<!-- Computer -->
+	<TD ID="P4"></TD>			<!-- Player -->
+</TR>
+<TR>     
+	<TD>Sixes</TD>
+	<TD ID="C5"></TD>		<!-- Computer -->
+	<TD ID="P5"></TD>			<!-- Player -->
+</TR>
+<TR>     
+	<TD>Bonus</TD>
+	<TD ID="C6"></TD>		<!-- Computer -->
+	<TD ID="P6"></TD>			<!-- Player -->
+</TR>
+<TR>     
+	<TD>Meh-tzee</TD>
+	<TD ID="C7"></TD>		<!-- Computer -->
+	<TD ID="P7"></TD>			<!-- Player -->
+</TR>
+<TR>     
+	<TD>Total</TD>
+	<TD ID="C8"></TD>		<!-- Computer -->
+	<TD ID="P8"></TD>			<!-- Player -->
+</TR>
+</TABLE>
+
+<BR></BR>
+<P ID="gameMessage">Click "New Game ?" above.</P>
+<BR></BR>
+
+<TABLE ID="WinLoss" width=60%>
+<TR>     
+	<TH>Computer Wins</TH><TH>Computer %win</TH>
+	<TH>Player Wins</TH><TH>Player %win</TH>
+	<TH>Total Games Played</TH>
+</TR>
+<TR>     
+	<TD ID="cWins"></TD>
+	<TD ID="cPercent"></TD>
+	<TD ID="pWins"></TD>			<!-- Player -->
+	<TD ID="pPercent"></TD>
+	<TD ID="totalGames"></TD>
+</TR>
+</TABLE>
+<SCRIPT type="text/javascript">
+function getUserName(){
+        var userName;
+        do{
+                userName = prompt("What is your name?", ""); //get input @ least 1 once from the user
+
+        }while(userName == "" || userName == null); //user must give some input in the name field
+        var userNameLength = userName.length; 
+        if(userNameLength > 20){
+                userName = userName.substring(0,20);
+        } //only use the first 20 characters from the user's entry
+        return userName;
+}
+
+var userName = getUserName();
+document.getElementById("thePlayer").innerHTML = userName;
+</SCRIPT>
+
+
+</BODY>
+</HTML>
+
